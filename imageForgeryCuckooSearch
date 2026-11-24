@@ -1,0 +1,66 @@
+import numpy as np 
+import random
+image = np.random.randint(0,256,(10,10))
+image[6:10,6:10] = image[1:5,1:5]
+# print("Hello World")
+def extract_patches(image,patch_size):
+    patches = []
+    rows,cols = image.shape
+    for i in range(rows-patch_size+1):
+        for j in range(cols-patch_size+1):
+            patch = image[i:i+patch_size,j:j+patch_size]
+            patches.append(((i,j),patch.copy()))
+    return patches
+patch_size = 4
+patches = extract_patches(image,patch_size)
+def fitness(candidate, patches):
+    idx1,idx2 = candidate
+    pos1,patch1 = patches[idx1]
+    pos2,patch2 = patches[idx2]
+    if idx1 == idx2:
+        return float('inf')
+    r1,c1 = pos1
+    r2,c2 = pos2
+    if abs(r1-r2) < patch_size and abs(c1-c2) < patch_size:
+        return float('inf')
+    diff = np.mean(np.abs(patch1.astype(float)-patch2.astype(float)))
+    return diff
+n_nests = 20
+n_iterations = 100
+Pa = 0.25
+n_patches = len(patches)
+nests = []
+for _ in range(n_nests):
+    candidate = [random.randint(0,n_patches-1),random.randint(0,n_patches-1)]
+    nests.append(candidate)
+best_nest = None
+best_fitness = float('inf')
+for iteration in range(n_iterations):
+    for i in range(n_nests):
+        current = nests[i]
+        new_candidate = current.copy()
+        if(random.random() < 0.5):
+            new_candidate[0] = random.randint(0,n_patches-1)
+        else:
+            new_candidate[1] = random.randint(0,n_patches-1)
+        new_fitness = fitness(new_candidate,patches)
+        current_fitness = fitness(current,patches)
+        if new_fitness < current_fitness:
+            nests[i] = new_candidate
+    for i in range(n_nests):
+        if random.random() < Pa:
+            nests[i] = [random.randint(0,n_patches-1),random.randint(0,n_patches-1)]
+    for nest in nests:
+        current_fitness = fitness(nest,patches)
+        if current_fitness < best_fitness:
+            best_fitness = current_fitness
+            best_nest = nest.copy()
+    print("i = ",iteration+1,"Best: ",best_fitness)
+idx1,idx2 = best_nest
+pos1,patch1 = patches[idx1]
+pos2,patch2 = patches[idx2]
+print('pos1',pos1)
+print('pos2',pos2)
+print(best_fitness)
+if(best_fitness == 0): print("Forgery detected")
+else: print("Forgery not detected")
